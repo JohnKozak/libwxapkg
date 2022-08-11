@@ -6,4 +6,4 @@ Usage:
 java -jar libwxapkg.jar <filename>
 ```
 
-or use '-h | --help' to see how to use.
+or use `-h | --help` to see how to use.
