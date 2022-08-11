@@ -1,0 +1,52 @@
+#!/bin/bash
+set -e
+
+INSTALL_PATH="$HOME/.local/lib/classpath"
+MAIN_CLASS="net.kozakcuu.wxapkg.WechatAppletPackage"
+
+__install_or_upgrade() {
+    local workdir="$(pwd)"
+    echo "Lib file will be install into '$INSTALL_PATH'."
+    [ -z $(command -v javac) ] && {
+        echo "Install from source require javac." 1>&2
+        exit 1
+    }
+
+    mkdir -p "$INSTALL_PATH" || :
+    [ -d "$INSTALL_PATH" ] || {
+        echo "Could not create install path $INSTALL_PATH" 1>&2
+        exit 1
+    }
+
+    local tmpdir="/tmp/tmp-$(date +%y%m%d%H%M%S)"
+    mkdir -p "$tmpdir" || {
+        echo "Could not create temp dir for install." 1>&2
+        exit 1
+    }
+    cd "$tmpdir"
+    __clean_on_exit() {
+        rm -rf "$tmpdir"
+    }
+    trap "__clean_on_exit" SIGTERM SIGINT SIGKILL EXIT
+
+    curl -# -L -O https://github.com/JohnKozak/libwxapkg/archive/refs/heads/master.zip
+    unzip "master.zip"
+    cd "libwxapkg-master"
+    chmod +x ./mvnw
+    ./mvnw clean package
+    echo "Try remove old jar file."
+    find "$INSTALL_PATH" -name 'libwxapkg*.jar' -exec rm -v -rf {} \; 1>&2
+    echo "Copy new jar file."
+    find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \; 1>&2
+    cd "$workir"
+    echo "Install finished." 1>&2
+}
+
+
+if [ s"install" == s"$1" ]
+then
+    __install_or_upgrade
+    exit 0
+fi
+
+java -classpath "$INSTALL_PATH/*" "$MAIN_CLASS" $@
