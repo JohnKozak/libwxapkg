@@ -73,6 +73,14 @@ prepare_work_dir() {
     trap "_clean_on_exit" SIGTERM SIGINT SIGKILL EXIT
 }
 
+prepare_bin_dir() {
+    [ -d "$BIN_DIR" ] && return 0
+    mkdir -p "$BIN_DIR" || {
+        echo "Could not create bin directory '$BIN_DIR'."
+        exit 1
+    }
+}
+
 build_command_unwxapkg() {
     local binname="$BIN_PATH/unwxapkg"
     cat "$binname" \
