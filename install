@@ -173,6 +173,7 @@ if [ s'true' == s"$FROM_SOURCE" ]
 then
     install_from_source
 elif [ -z "$(command -v jq 2> /dev/null)" ]
+then
     install_from_binary_default
 else
     install_from_binary_auto
