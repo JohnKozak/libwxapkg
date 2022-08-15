@@ -1,0 +1,165 @@
+#!/bin/bash
+set -e
+
+INSTALL_PATH="$INSTALL_PATH"
+BIN_PATH="$BIN_PATH"
+MAIN_CLASS="net.kozakcuu.wxapkg.WechatAppletPackage"
+ORIGIN_DIR="$(pwd)"
+FROM_SOURCE="$FROM_SOURCE"
+
+# It will be updated in every release
+DEFAULT_BINARY_ADDRESS="https://github.com/JohnKozak/libwxapkg/releases/download/v1.0/libwxapkg-1.0.jar"
+
+# Check curl
+[ -z "$(command -v curl 2> /dev/null)" ] && {
+    echo "Installation require curl."
+    echo "Please install it before continue."
+    exit 1
+}
+
+# Prepare install path
+[ -z "$INSTALL_PATH" ] && {
+    INSTALL_PATH="$HOME/.local/lib/java"
+    _USE_DEFAULT_INSTALL_PATH="true"
+}
+
+# Prepare bin path
+[ -z "$BIN_PATH" ] && {
+    BIN_PATH="$HOME/.local/bin"
+    _USE_DEFAULT_BIN_PATH="true"
+}
+
+# Print out the install settings
+_print_install_settings() {
+    echo "Executable will be install into '$BIN_PATH'."
+    [ b"$_USE_DEFAULT_BIN_PATH" = b'true' ] && {
+        echo "If you didn't add it to your PATH you can do it later."
+        echo "Or you can change the executable file install path by given BIN_PATH variable."
+    }
+
+    echo "Jar lib will be install into '$INSTALL_PATH'."
+    [ b"$_USE_DEFAULT_INSTALL_PATH" = b'true' ] && {
+        echo "Or you can change the executable file install path by given INSTALL_PATH variable."
+    }
+}
+
+# Prepare work dir and add delete hook
+_prepare_work_dir() {
+    local workdir="$(pwd)"
+
+    mkdir -p "$INSTALL_PATH" 2> /dev/null || :
+    [ -d "$INSTALL_PATH" ] || {
+        echo "Could not create install path $INSTALL_PATH" 1>&2
+        exit 1
+    }
+
+    local tmpdirname="tmp-$(date +%y%m%d%H%M%S)"
+    local tmpdir="/tmp/$tmpdirname"
+    mkdir -p "$tmpdir" || {
+        echo "Could not create temporal directory in /tmp, try use '$HOME/.tmp'."
+        tmpdir="$HOME/.tmp/$tmpdirname"
+        mkdir -p "$tmpdir" || {
+          echo "Could not create temp dir '$tmpdir' for install." 1>&2
+          exit 1
+        }
+    }
+    cd "$tmpdir"
+    WORK_DIR="$tmpdir"
+
+    _clean_on_exit() {
+        rm -rf "$WORK_DIR"
+    }
+
+    trap "_clean_on_exit" SIGTERM SIGINT SIGKILL EXIT
+}
+
+build_command_unwxapkg() {
+    cat "$BIN_PATH/unwxapkg" \
+<<EOF
+#!/bin/bash
+set -e
+
+INSTALL_PATH="$INSTALL_PATH"
+java -cp "\$INSTALL_PATH/*" "$MAIN_CLASS" \$@
+
+EOF
+# END SCRIPT
+
+}
+
+install_from_source() {
+    echo "Start installing from source."
+
+    # Check javac
+    [ -z "$(command -v javac 2> /dev/null)" ] && {
+        echo "Install from source could not run because lack of 'javac' command for compile the source."
+        echo "Install it before continue."
+        exit 1
+    }
+
+    _print_install_settings
+    _prepare_work_dir
+
+    # Start install
+    curl -# -L -O https://github.com/JohnKozak/libwxapkg/archive/refs/heads/master.zip
+    unzip "master.zip"
+    cd "libwxapkg-master"
+    chmod +x ./mvnw
+    # Use the temporal dir to place the maven2 stuff
+    ./mvnw "-Dmaven.repo.local=$WORK_DIR/maven2" clean package
+    echo "Try removing old jar file."
+    find "$INSTALL_PATH" -name 'libwxapkg*.jar' -exec rm -v -rf {} \; 1>&2
+    echo "Copy new jar file."
+    find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \; 1>&2
+    cd "$ORIGIN_DIR"
+    build_command_unwxapkg
+
+    # Finished.
+    echo "Install finished."
+    exit 0
+}
+
+install_from_binary_default() {
+    echo "Start install from default binary."
+    _prepare_work_dir
+    _print_install_settings
+    curl -# -L -O $DEFAULT_BINARY_ADDRESS
+    find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
+    cd "$ORIGIN_DIR"
+    build_command_unwxapkg
+
+    echo "Install finished." 1>&2
+    exit 0
+}
+
+install_from_binary_auto() {
+    echo "Trying to download the latest version."
+    [ -z "$(command -v jq 2> /dev/null)" ] && {
+        echo "Latest version detection could not run because lack of command 'jq'"
+        echo "Install it before continue."
+        exit 1
+    }
+    local release_api_url='https://api.github.com/repos/JohnKozak/libwxapkg/releases'
+    local jarurl="$(curl -sSL -H 'application/vnd.github+json' $release_api_url | jq -rM '.[0].assets|.[0].browser_download_url')"
+    [ -z "$jarurl" ] && {
+        echo "Could not get jar url from repo."
+        exit 1
+    }
+    curl -O -L -# "$jarurl"
+    find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
+    cd "$ORIGIN_DIR"
+    build_command_unwxapkg
+
+    echo "Install finished." 1>&2
+    exit 0
+}
+
+if [ s'true' == s"$FROM_SOURCE" ]
+then
+    install_from_source
+else if [ -z "$(command -v jq 2> /dev/null)" ]
+then
+    install_from_binary_default
+else
+    install_from_binary_auto
+fi
