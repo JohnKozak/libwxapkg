@@ -74,16 +74,16 @@ prepare_work_dir() {
 }
 
 prepare_bin_dir() {
-    [ -d "$BIN_DIR" ] && return 0
-    mkdir -p "$BIN_DIR" || {
-        echo "Could not create bin directory '$BIN_DIR'."
+    [ -d "$BIN_PATH" ] && return 0
+    mkdir -p "$BIN_PATH" || {
+        echo "Could not create bin directory '$BIN_PATH'."
         exit 1
     }
 }
 
 build_command_unwxapkg() {
     local binname="$BIN_PATH/unwxapkg"
-    cat "$binname" \
+    cat > "$binname" \
 <<EOF
 #!/bin/bash
 set -e
@@ -123,6 +123,8 @@ install_from_source() {
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \; 1>&2
     cd "$ORIGIN_DIR"
 
+    # Prepare executables
+    prepare_bin_dir
     build_command_unwxapkg
 
     # Finished.
@@ -141,6 +143,8 @@ install_from_binary_default() {
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
     cd "$ORIGIN_DIR"
 
+    # Prepare executables
+    prepare_bin_dir
     build_command_unwxapkg
 
     echo "Install finished." 1>&2
@@ -171,6 +175,8 @@ install_from_binary_auto() {
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
     cd "$ORIGIN_DIR"
 
+    # Prepare executables
+    prepare_bin_dir
     build_command_unwxapkg
 
     echo "Install finished." 1>&2
