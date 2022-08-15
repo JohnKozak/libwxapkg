@@ -74,7 +74,8 @@ _prepare_work_dir() {
 }
 
 build_command_unwxapkg() {
-    cat "$BIN_PATH/unwxapkg" \
+    local binname="$BIN_PATH/unwxapkg"
+    cat "$binname" \
 <<EOF
 #!/bin/bash
 set -e
@@ -84,7 +85,7 @@ java -cp "\$INSTALL_PATH/*" "$MAIN_CLASS" \$@
 
 EOF
 # END SCRIPT
-
+    chmod +x "$binname"
 }
 
 install_from_source() {

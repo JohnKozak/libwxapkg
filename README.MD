@@ -2,14 +2,22 @@ A tool to unpacking Wechat applet packages.
 
 Usage:
 
-Download the `/bin/unwxapkg` into your PATH folder, add executable flag and execute `unwxapkg install` to install it from source.
-
+Install via:
+```
+bash <(curl -sSL https://raw.githubusercontent.com/JohnKozak/libwxapkg/master/install)
+```
 Then
-
 ```
 unwxapkg <filename>
 ```
 
-or use `-h | --help` to see how to use.
+Use `-h | --help` to see how to use.
 
-The jar file will be installed into `~/.local/lib/classpath` by default. You can modify the script to change it.
+The jar file will be installed into `~/.local/lib/classpath` (Modify it by given INSTALL_PATH variable), 
+and the executable script will be installed into `~/.local/bin` (Modify it by given BIN_PATH variable).
+
+If you want to install it from source, give `FROM_SOURCE=true` to the installer script:
+
+```
+bash <(FROM_SOURCE=true curl -sSL https://raw.githubusercontent.com/JohnKozak/libwxapkg/master/install)
+```
