@@ -8,7 +8,7 @@ ORIGIN_DIR="$(pwd)"
 FROM_SOURCE="$FROM_SOURCE"
 
 # It will be updated in every release
-DEFAULT_BINARY_ADDRESS="https://github.com/JohnKozak/libwxapkg/releases/download/v1.0/libwxapkg-1.0.jar"
+DEFAULT_BINARY_ADDRESS='https://github.com/JohnKozak/libwxapkg/releases/download/v1.0/libwxapkg-1.0.jar'
 
 # Check curl
 [ -z "$(command -v curl 2> /dev/null)" ] && {
@@ -30,21 +30,21 @@ DEFAULT_BINARY_ADDRESS="https://github.com/JohnKozak/libwxapkg/releases/download
 }
 
 # Print out the install settings
-_print_install_settings() {
+print_install_settings() {
     echo "Executable will be install into '$BIN_PATH'."
     [ b"$_USE_DEFAULT_BIN_PATH" = b'true' ] && {
-        echo "If you didn't add it to your PATH you can do it later."
-        echo "Or you can change the executable file install path by given BIN_PATH variable."
+        echo "- If you didn't add it to your PATH you can do it later."
+        echo "- Or you can change the executable file install path by giving BIN_PATH variable."
     }
 
     echo "Jar lib will be install into '$INSTALL_PATH'."
     [ b"$_USE_DEFAULT_INSTALL_PATH" = b'true' ] && {
-        echo "Or you can change the executable file install path by given INSTALL_PATH variable."
+        echo "- Or you can change the executable file install path by giving INSTALL_PATH variable."
     }
 }
 
 # Prepare work dir and add delete hook
-_prepare_work_dir() {
+prepare_work_dir() {
     local workdir="$(pwd)"
 
     mkdir -p "$INSTALL_PATH" 2> /dev/null || :
@@ -98,8 +98,9 @@ install_from_source() {
         exit 1
     }
 
-    _print_install_settings
-    _prepare_work_dir
+    # Prepare install
+    print_install_settings
+    prepare_work_dir
 
     # Start install
     curl -# -L -O https://github.com/JohnKozak/libwxapkg/archive/refs/heads/master.zip
@@ -113,6 +114,7 @@ install_from_source() {
     echo "Copy new jar file."
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \; 1>&2
     cd "$ORIGIN_DIR"
+
     build_command_unwxapkg
 
     # Finished.
@@ -122,11 +124,15 @@ install_from_source() {
 
 install_from_binary_default() {
     echo "Start install from default binary."
-    _prepare_work_dir
-    _print_install_settings
+
+    # Prepare install
+    print_install_settings
+    prepare_work_dir
+
     curl -# -L -O $DEFAULT_BINARY_ADDRESS
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
     cd "$ORIGIN_DIR"
+
     build_command_unwxapkg
 
     echo "Install finished." 1>&2
@@ -135,11 +141,18 @@ install_from_binary_default() {
 
 install_from_binary_auto() {
     echo "Trying to download the latest version."
+
+    # Check jq
     [ -z "$(command -v jq 2> /dev/null)" ] && {
         echo "Latest version detection could not run because lack of command 'jq'"
         echo "Install it before continue."
         exit 1
     }
+
+    # Prepare install
+    print_install_settings
+    prepare_work_dir
+
     local release_api_url='https://api.github.com/repos/JohnKozak/libwxapkg/releases'
     local jarurl="$(curl -sSL -H 'application/vnd.github+json' $release_api_url | jq -rM '.[0].assets|.[0].browser_download_url')"
     [ -z "$jarurl" ] && {
@@ -149,6 +162,7 @@ install_from_binary_auto() {
     curl -O -L -# "$jarurl"
     find . -name 'libwxapkg*.jar' -exec cp -v {} "$INSTALL_PATH" \;
     cd "$ORIGIN_DIR"
+
     build_command_unwxapkg
 
     echo "Install finished." 1>&2
@@ -159,7 +173,6 @@ if [ s'true' == s"$FROM_SOURCE" ]
 then
     install_from_source
 elif [ -z "$(command -v jq 2> /dev/null)" ]
-then
     install_from_binary_default
 else
     install_from_binary_auto
