@@ -18,10 +18,14 @@ __install_or_upgrade() {
         exit 1
     }
 
-    local tmpdir="/tmp/tmp-$(date +%y%m%d%H%M%S)"
+    local tmpdirname="tmp-$(date +%y%m%d%H%M%S)"
+    local tmpdir="/tmp/$tmpdirname"
     mkdir -p "$tmpdir" || {
-        echo "Could not create temp dir for install." 1>&2
-        exit 1
+        tmpdir="$HOME/.$tmpdirname"
+        mkdir -p "$tmpdir" || {
+          echo "Could not create temp dir '$tmpdir' for install." 1>&2
+          exit 1
+        }
     }
     cd "$tmpdir"
     __clean_on_exit() {
