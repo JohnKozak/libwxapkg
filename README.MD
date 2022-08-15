@@ -19,5 +19,5 @@ and the executable script will be installed into `~/.local/bin` (Modify it by gi
 If you want to install it from source, give `FROM_SOURCE=true` to the installer script:
 
 ```
-bash <(FROM_SOURCE=true curl -sSL https://raw.githubusercontent.com/JohnKozak/libwxapkg/master/install)
+FROM_SOURCE=true bash <(curl -sSL https://raw.githubusercontent.com/JohnKozak/libwxapkg/master/install)
 ```
